@@ -79,7 +79,7 @@ class GameScreen(private val game: My2048Game) : Screen {
             if (spawnAnimTime < 0f) spawnAnimTime = 0f
         }
 
-        Gdx.gl.glClearColor(0.95f, 0.93f, 0.88f, 1f)
+        Gdx.gl.glClearColor(0.98f, 0.97f, 0.95f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
         camera.update()
@@ -165,7 +165,7 @@ class GameScreen(private val game: My2048Game) : Screen {
         val m = gridMetrics()
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         // Board background
-        shapes.color = Color(0.80f, 0.75f, 0.70f, 1f)
+        shapes.color = Color(0.80f, 0.76f, 0.72f, 1f)
         shapes.rect(m.left, m.bottom, m.gridSize, m.gridSize)
 
         for (r in 0 until 4) {
@@ -244,7 +244,7 @@ class GameScreen(private val game: My2048Game) : Screen {
         val oldScale = font.data.scaleX
         font.data.setScale(2f * scale)
         layout.setText(font, text)
-        font.color = if (value <= 4) Color(0.29f, 0.25f, 0.22f, 1f) else Color.WHITE
+        font.color = if (value <= 4) Color(0.47f, 0.43f, 0.40f, 1f) else Color.WHITE
         font.draw(batch, layout, cx - layout.width / 2f, cy + layout.height / 2f)
         font.data.setScale(oldScale)
     }
@@ -266,39 +266,44 @@ class GameScreen(private val game: My2048Game) : Screen {
     }
 
     private fun drawOverlay() {
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         shapes.begin(ShapeRenderer.ShapeType.Filled)
-        shapes.color = Color(0f, 0f, 0f, 0.45f)
+        shapes.color = Color(0.98f, 0.97f, 0.95f, 0.7f)
         shapes.rect(0f, 0f, VIRTUAL_W, VIRTUAL_H)
         shapes.end()
+        Gdx.gl.glDisable(GL20.GL_BLEND)
 
         val msg = when {
-            board.lost -> "Game Over — Press Space / Tap to Restart"
-            board.won -> "You Win! Keep Going or Press R to Restart"
+            board.lost -> "Game Over!\n\nScore: ${board.score}\n\nTap to Restart"
+            board.won -> "You Win!\n\nScore: ${board.score}\n\nKeep Going or Press R to Restart"
             else -> ""
         }
         batch.begin()
-        font.color = Color.WHITE
-        font.data.setScale(1.6f)
-        layout.setText(font, msg)
-        font.draw(batch, layout, (VIRTUAL_W - layout.width) / 2f, (VIRTUAL_H + layout.height) / 2f)
+        font.color = Color(0.47f, 0.43f, 0.40f, 1f)
+        font.data.setScale(1.8f)
+        // First, use the layout to determine the height of the wrapped text
+        layout.setText(font, msg, Color.WHITE, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
+        // Now, draw the text centered horizontally across the entire screen
+        font.draw(batch, msg, 0f, (VIRTUAL_H + layout.height) / 2f, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
         font.data.setScale(2f)
         batch.end()
     }
 
     private fun tileColor(value: Int): Color {
         return when (value) {
-            0 -> Color(0.90f, 0.87f, 0.82f, 1f)
-            2 -> Color(0.93f, 0.89f, 0.78f, 1f)
-            4 -> Color(0.93f, 0.88f, 0.74f, 1f)
-            8 -> Color(0.94f, 0.68f, 0.47f, 1f)
+            0 -> Color(0.80f, 0.76f, 0.72f, 1f)
+            2 -> Color(0.93f, 0.89f, 0.85f, 1f)
+            4 -> Color(0.93f, 0.88f, 0.76f, 1f)
+            8 -> Color(0.95f, 0.69f, 0.47f, 1f)
             16 -> Color(0.96f, 0.58f, 0.39f, 1f)
-            32 -> Color(0.96f, 0.48f, 0.37f, 1f)
-            64 -> Color(0.96f, 0.36f, 0.23f, 1f)
-            128 -> Color(0.93f, 0.81f, 0.44f, 1f)
-            256 -> Color(0.93f, 0.80f, 0.40f, 1f)
-            512 -> Color(0.93f, 0.78f, 0.36f, 1f)
-            1024 -> Color(0.93f, 0.76f, 0.32f, 1f)
-            2048 -> Color(0.93f, 0.74f, 0.28f, 1f)
+            32 -> Color(0.96f, 0.49f, 0.37f, 1f)
+            64 -> Color(0.96f, 0.37f, 0.23f, 1f)
+            128 -> Color(0.93f, 0.81f, 0.45f, 1f)
+            256 -> Color(0.93f, 0.80f, 0.38f, 1f)
+            512 -> Color(0.93f, 0.78f, 0.31f, 1f)
+            1024 -> Color(0.93f, 0.77f, 0.25f, 1f)
+            2048 -> Color(0.93f, 0.76f, 0.18f, 1f)
             else -> Color(0.20f, 0.20f, 0.20f, 1f)
         }
     }
