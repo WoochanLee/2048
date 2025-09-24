@@ -30,7 +30,9 @@ class GameScreen(private val game: My2048Game) : Screen {
     private val shapes = ShapeRenderer()
 
     private val tileFont = BitmapFont(Gdx.files.internal("fonts/roboto_32.fnt"))
-    private val hudFont = BitmapFont(Gdx.files.internal("fonts/roboto_32.fnt"))
+    private val hudFont = BitmapFont(Gdx.files.internal("fonts/roboto_32.fnt")).apply {
+        data.setScale(0.8f)
+    }
     private val titleFont = BitmapFont(Gdx.files.internal("fonts/roboto_32.fnt"))
 
     private val layout = GlyphLayout()
