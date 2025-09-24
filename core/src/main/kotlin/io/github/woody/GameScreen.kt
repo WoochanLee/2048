@@ -18,8 +18,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport
 import kotlin.math.abs
 import kotlin.math.min
 
+
 class GameScreen(private val game: My2048Game) : Screen {
-    private val VIRTUAL_W = 480f
+    private val VIRTUAL_W = 450f
     private val VIRTUAL_H = 800f
 
     private val camera = OrthographicCamera()
@@ -27,9 +28,11 @@ class GameScreen(private val game: My2048Game) : Screen {
 
     private val batch = SpriteBatch()
     private val shapes = ShapeRenderer()
-    private val tileFont = BitmapFont()
-    private val hudFont = BitmapFont()
-    private val logoTexture = Texture(Gdx.files.internal("image/logo.png"))
+
+    private val tileFont = BitmapFont(Gdx.files.internal("fonts/roboto_32.fnt"))
+    private val hudFont = BitmapFont(Gdx.files.internal("fonts/roboto_32.fnt"))
+    private val titleFont = BitmapFont(Gdx.files.internal("fonts/roboto_32.fnt"))
+
     private val layout = GlyphLayout()
 
     private val board = Board()
@@ -52,15 +55,16 @@ class GameScreen(private val game: My2048Game) : Screen {
 
     // sounds (put small wav/ogg files under assets/sounds)
     private val sMove: Sound = Gdx.audio.newSound(Gdx.files.internal("sounds/move.wav"))
-    private val sMerge: Sound = Gdx.audio.newSound(Gdx.files.internal("sounds/merge.wav"))
-    private val sSpawn: Sound = Gdx.audio.newSound(Gdx.files.internal("sounds/spawn.wav"))
     private val sOver: Sound = Gdx.audio.newSound(Gdx.files.internal("sounds/gameover.wav"))
     private val bgMusic: Music = Gdx.audio.newMusic(Gdx.files.internal("sounds/background.mp3"))
 
     init {
         board.reset()
-        tileFont.data.setScale(2f)
-        hudFont.data.setScale(2f)
+        tileFont.region.texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        hudFont.region.texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        titleFont.region.texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+
+        titleFont.color = Color(0.47f, 0.43f, 0.40f, 1f)
     }
 
     override fun show() {
@@ -94,7 +98,7 @@ class GameScreen(private val game: My2048Game) : Screen {
         batch.projectionMatrix = camera.combined
 
         drawBoard()
-        drawLogo()
+        drawTitle()
         drawHUD()
 
         if (board.lost || board.won) drawOverlay()
@@ -150,10 +154,8 @@ class GameScreen(private val game: My2048Game) : Screen {
             skipCellsForMerge = currentAnims.filter { it.merged }.map { it.toR to it.toC }.toMutableSet()
             animTime = if (currentAnims.isNotEmpty()) slideDuration else 0f
             if (currentAnims.isNotEmpty()) sMove.play(0.2f)
-            if (currentAnims.any { it.merged }) sMerge.play(0.25f)
             if (board.lastSpawn != null) {
                 spawnAnimTime = spawnDuration
-                sSpawn.play(0.2f)
             }
             if (board.lost) sOver.play(0.4f)
         }
@@ -264,12 +266,9 @@ class GameScreen(private val game: My2048Game) : Screen {
 
     private fun drawNumberAt(cx: Float, cy: Float, value: Int, scale: Float = 1f) {
         val text = value.toString()
-        val oldScale = tileFont.data.scaleX
-        tileFont.data.setScale(2f * scale)
         layout.setText(tileFont, text)
         tileFont.color = Color.WHITE
         tileFont.draw(batch, layout, cx - layout.width / 2f, cy + layout.height / 2f)
-        tileFont.data.setScale(oldScale)
     }
 
     private fun cellCenter(m: QuadMetrics, r: Int, c: Int): Pair<Float, Float> {
@@ -288,14 +287,14 @@ class GameScreen(private val game: My2048Game) : Screen {
         batch.end()
     }
 
-    private fun drawLogo() {
+    private fun drawTitle() {
         batch.begin()
         val m = gridMetrics()
         val boardTop = m.bottom + m.gridSize
-        val logoHeight = 70f
-        val logoWidth = logoTexture.width * (logoHeight / logoTexture.height)
-        val logoY = boardTop - 50f + (VIRTUAL_H - boardTop - logoHeight) / 2f
-        batch.draw(logoTexture, (VIRTUAL_W - logoWidth) / 2f, logoY, logoWidth, logoHeight)
+        val titleText = "Money Merge Puzzle"
+        layout.setText(titleFont, titleText)
+        val titleY = boardTop - 20f + (VIRTUAL_H - boardTop - layout.height) / 2f
+        titleFont.draw(batch, layout, (VIRTUAL_W - layout.width) / 2f, titleY + layout.height)
         batch.end()
     }
 
@@ -315,12 +314,10 @@ class GameScreen(private val game: My2048Game) : Screen {
         }
         batch.begin()
         hudFont.color = Color(0.47f, 0.43f, 0.40f, 1f)
-        hudFont.data.setScale(1.8f)
         // First, use the layout to determine the height of the wrapped text
         layout.setText(hudFont, msg, Color.WHITE, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
         // Now, draw the text centered horizontally across the entire screen
         hudFont.draw(batch, msg, 0f, (VIRTUAL_H + layout.height) / 2f, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
-        hudFont.data.setScale(2f)
         batch.end()
     }
 
@@ -371,10 +368,8 @@ class GameScreen(private val game: My2048Game) : Screen {
         shapes.dispose()
         tileFont.dispose()
         hudFont.dispose()
-        logoTexture.dispose()
+        titleFont.dispose()
         sMove.dispose()
-        sMerge.dispose()
-        sSpawn.dispose()
         sOver.dispose()
         bgMusic.dispose()
     }
