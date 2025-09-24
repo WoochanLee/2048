@@ -20,7 +20,7 @@ object TeaVMBuilder {
      * This works well when the targetType is set to JAVASCRIPT, but you can still set the targetType to WEBASSEMBLY_GC
      * while this is true in order to test that higher-performance target before releasing.
      */
-    private const val DEBUG = true
+    private const val DEBUG = false
 
     @JvmStatic fun main(arguments: Array<String>) {
         val teaBuildConfiguration = TeaBuildConfiguration().apply {

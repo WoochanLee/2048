@@ -1,0 +1,8 @@
+.gitkeep
+fonts/roboto_32.fnt
+fonts/roboto_32.png
+sounds/background.mp3
+sounds/gameover.wav
+sounds/merge.wav
+sounds/move.wav
+sounds/spawn.wav
