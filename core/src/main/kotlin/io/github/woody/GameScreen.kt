@@ -1,15 +1,14 @@
-// ==============================
-// File: core/src/main/kotlin/com/yourcompany/gdx2048/GameScreen.kt
-// ==============================
 package io.github.woody
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
+import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
@@ -28,7 +27,9 @@ class GameScreen(private val game: My2048Game) : Screen {
 
     private val batch = SpriteBatch()
     private val shapes = ShapeRenderer()
-    private val font = BitmapFont()
+    private val tileFont = BitmapFont()
+    private val hudFont = BitmapFont()
+    private val logoTexture = Texture(Gdx.files.internal("image/logo.png"))
     private val layout = GlyphLayout()
 
     private val board = Board()
@@ -54,13 +55,19 @@ class GameScreen(private val game: My2048Game) : Screen {
     private val sMerge: Sound = Gdx.audio.newSound(Gdx.files.internal("sounds/merge.wav"))
     private val sSpawn: Sound = Gdx.audio.newSound(Gdx.files.internal("sounds/spawn.wav"))
     private val sOver: Sound = Gdx.audio.newSound(Gdx.files.internal("sounds/gameover.wav"))
+    private val bgMusic: Music = Gdx.audio.newMusic(Gdx.files.internal("sounds/background.mp3"))
 
     init {
         board.reset()
-        font.data.setScale(2f)
+        tileFont.data.setScale(2f)
+        hudFont.data.setScale(2f)
     }
 
-    override fun show() {}
+    override fun show() {
+        bgMusic.isLooping = true
+        bgMusic.volume = 0.2f
+        bgMusic.play()
+    }
 
     override fun render(delta: Float) {
         handleInput()
@@ -87,6 +94,7 @@ class GameScreen(private val game: My2048Game) : Screen {
         batch.projectionMatrix = camera.combined
 
         drawBoard()
+        drawLogo()
         drawHUD()
 
         if (board.lost || board.won) drawOverlay()
@@ -163,6 +171,7 @@ class GameScreen(private val game: My2048Game) : Screen {
 
     private fun drawBoard() {
         val m = gridMetrics()
+        val radius = 8f
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         // Board background
         shapes.color = Color(0.80f, 0.76f, 0.72f, 1f)
@@ -174,11 +183,25 @@ class GameScreen(private val game: My2048Game) : Screen {
                     // skip drawing merged destination tile during slide to avoid double-draw
                     continue
                 }
-                val x = m.left + gridGap + c * (m.tileSize + gridGap)
-                val y = m.bottom + gridGap + r * (m.tileSize + gridGap)
                 val value = board.grid[r][c]
                 shapes.color = tileColor(value)
-                shapes.rect(x, y, m.tileSize, m.tileSize)
+
+                // Original position and size
+                val x = m.left + gridGap + c * (m.tileSize + gridGap)
+                val y = m.bottom + gridGap + r * (m.tileSize + gridGap)
+                var size = m.tileSize
+                var drawX = x
+                var drawY = y
+
+                // Check for spawn animation
+                if (spawnAnimTime > 0f && board.lastSpawn == r to c) {
+                    val t = 1f - (spawnAnimTime / spawnDuration)
+                    val scale = t * t * (3 - 2 * t) // smoothstep for 0.0 -> 1.0
+                    size *= scale
+                    drawX = x + (m.tileSize - size) / 2f
+                    drawY = y + (m.tileSize - size) / 2f
+                }
+                shapes.roundedRect(drawX, drawY, size, size, radius)
             }
         }
         shapes.end()
@@ -196,7 +219,7 @@ class GameScreen(private val game: My2048Game) : Screen {
                 val x = sx + (ex - sx) * ease
                 val y = sy + (ey - sy) * ease
                 shapes.color = tileColor(a.value)
-                shapes.rect(x, y, m.tileSize, m.tileSize)
+                shapes.roundedRect(x, y, m.tileSize, m.tileSize, radius)
             }
             shapes.end()
         }
@@ -210,9 +233,9 @@ class GameScreen(private val game: My2048Game) : Screen {
                 if (value == 0) continue
                 val center = cellCenter(m, r, c)
                 val scale = if (spawnAnimTime > 0f && board.lastSpawn == r to c) {
-                    // pop-in scale from 0.8 -> 1.0
-                    val tt = 1f - (spawnAnimTime / spawnDuration)
-                    0.8f + 0.2f * (tt * tt * (3 - 2 * tt))
+                    // grow scale from 0.0 -> 1.0
+                    val t = 1f - (spawnAnimTime / spawnDuration)
+                    t * t * (3 - 2 * t) // smoothstep
                 } else 1f
                 drawValue(center.first, center.second, m.tileSize, value, scale)
             }
@@ -241,12 +264,12 @@ class GameScreen(private val game: My2048Game) : Screen {
 
     private fun drawNumberAt(cx: Float, cy: Float, value: Int, scale: Float = 1f) {
         val text = value.toString()
-        val oldScale = font.data.scaleX
-        font.data.setScale(2f * scale)
-        layout.setText(font, text)
-        font.color = if (value <= 4) Color(0.47f, 0.43f, 0.40f, 1f) else Color.WHITE
-        font.draw(batch, layout, cx - layout.width / 2f, cy + layout.height / 2f)
-        font.data.setScale(oldScale)
+        val oldScale = tileFont.data.scaleX
+        tileFont.data.setScale(2f * scale)
+        layout.setText(tileFont, text)
+        tileFont.color = Color.WHITE
+        tileFont.draw(batch, layout, cx - layout.width / 2f, cy + layout.height / 2f)
+        tileFont.data.setScale(oldScale)
     }
 
     private fun cellCenter(m: QuadMetrics, r: Int, c: Int): Pair<Float, Float> {
@@ -257,11 +280,22 @@ class GameScreen(private val game: My2048Game) : Screen {
 
     private fun drawHUD() {
         batch.begin()
-        font.color = Color(0.3f, 0.3f, 0.3f, 1f)
-        layout.setText(font, "SCORE: ${board.score}")
-        font.draw(batch, layout, padding, VIRTUAL_H - padding)
-        layout.setText(font, "Best: ${board.best}")
-        font.draw(batch, layout, VIRTUAL_W - padding - layout.width, VIRTUAL_H - padding)
+        hudFont.color = Color(0.3f, 0.3f, 0.3f, 1f)
+        layout.setText(hudFont, "SCORE: ${board.score}")
+        hudFont.draw(batch, layout, padding, VIRTUAL_H - padding)
+        layout.setText(hudFont, "Best: ${board.best}")
+        hudFont.draw(batch, layout, VIRTUAL_W - padding - layout.width, VIRTUAL_H - padding)
+        batch.end()
+    }
+
+    private fun drawLogo() {
+        batch.begin()
+        val m = gridMetrics()
+        val boardTop = m.bottom + m.gridSize
+        val logoHeight = 70f
+        val logoWidth = logoTexture.width * (logoHeight / logoTexture.height)
+        val logoY = boardTop - 50f + (VIRTUAL_H - boardTop - logoHeight) / 2f
+        batch.draw(logoTexture, (VIRTUAL_W - logoWidth) / 2f, logoY, logoWidth, logoHeight)
         batch.end()
     }
 
@@ -280,13 +314,13 @@ class GameScreen(private val game: My2048Game) : Screen {
             else -> ""
         }
         batch.begin()
-        font.color = Color(0.47f, 0.43f, 0.40f, 1f)
-        font.data.setScale(1.8f)
+        hudFont.color = Color(0.47f, 0.43f, 0.40f, 1f)
+        hudFont.data.setScale(1.8f)
         // First, use the layout to determine the height of the wrapped text
-        layout.setText(font, msg, Color.WHITE, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
+        layout.setText(hudFont, msg, Color.WHITE, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
         // Now, draw the text centered horizontally across the entire screen
-        font.draw(batch, msg, 0f, (VIRTUAL_H + layout.height) / 2f, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
-        font.data.setScale(2f)
+        hudFont.draw(batch, msg, 0f, (VIRTUAL_H + layout.height) / 2f, VIRTUAL_W, com.badlogic.gdx.utils.Align.center, true)
+        hudFont.data.setScale(2f)
         batch.end()
     }
 
@@ -308,19 +342,41 @@ class GameScreen(private val game: My2048Game) : Screen {
         }
     }
 
+    private fun ShapeRenderer.roundedRect(x: Float, y: Float, width: Float, height: Float, radius: Float) {
+        // Central rectangle
+        rect(x + radius, y, width - 2 * radius, height)
+        // Side rectangles
+        rect(x, y + radius, width, height - 2 * radius)
+
+        // Four arches
+        arc(x + radius, y + radius, radius, 180f, 90f)
+        arc(x + width - radius, y + radius, radius, 270f, 90f)
+        arc(x + width - radius, y + height - radius, radius, 0f, 90f)
+        arc(x + radius, y + height - radius, radius, 90f, 90f)
+    }
+
     override fun resize(width: Int, height: Int) = viewport.update(width, height, true)
-    override fun pause() {}
-    override fun resume() {}
-    override fun hide() {}
+    override fun pause() {
+        bgMusic.pause()
+    }
+    override fun resume() {
+        bgMusic.play()
+    }
+    override fun hide() {
+        bgMusic.stop()
+    }
 
     override fun dispose() {
         batch.dispose()
         shapes.dispose()
-        font.dispose()
+        tileFont.dispose()
+        hudFont.dispose()
+        logoTexture.dispose()
         sMove.dispose()
         sMerge.dispose()
         sSpawn.dispose()
         sOver.dispose()
+        bgMusic.dispose()
     }
 }
 

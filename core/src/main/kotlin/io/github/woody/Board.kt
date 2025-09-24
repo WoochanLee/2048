@@ -1,6 +1,3 @@
-// ==============================
-// File: core/src/main/kotlin/com/yourcompany/gdx2048/Board.kt
-// ==============================
 package io.github.woody
 
 import com.badlogic.gdx.math.RandomXS128
